@@ -16,8 +16,9 @@ O princípio norteador deste IdP é responder exclusivamente a **"quem é essa p
   - Regras estritas de segurança: Provedores com e-mail verificado (Google) vinculam automaticamente; provedores sem verificação garantida (ORCID) exigem vínculo autenticado via perfil `/me` para mitigar sequestro de contas (*account takeover*).
   - Proteção contra perda de acesso: o usuário nunca pode remover seu último método de autenticação ativo.
 - **Servidor OAuth2 / OIDC**:
+  - Tela de login interativa centralizada (`login.html` em `app/templates/login.html`) no endpoint `GET /authorize`, seguindo a identidade visual do Observatório CT&I Bahia (`DESIGN.md`).
   - Fluxo **Authorization Code** com validação obrigatória de **PKCE** (métodos `S256` e `plain`).
-  - Emissão de **Access Tokens JWT assinados com RS256** contendo par de chaves RSA e identificador `kid`.
+  - Emissão de **Access Tokens JWT assinados com RS256** contendo identificador `kid`, dados do usuário (`sub`, `email`, `name`) e a atribuição de papel **`role`** (`DEFAULT` ou `ADMIN`) para controle de permissões centralizado nas aplicações satélites.
   - Exposição pública do endpoint **JWKS** (`GET /.well-known/jwks.json`), permitindo que aplicações satélites validem os tokens em cache localmente sem bater no banco de dados.
   - Emissão e rotação contínua de **Refresh Tokens** opacos com agrupamento por família (`family_id`) e **detecção de reúso**: a reutilização de um token anterior revoga imediatamente toda a cadeia por segurança.
 - **Persistência Assíncrona**: Suporte a PostgreSQL e SQLite assíncrono via **SQLAlchemy 2.0** e migrações automáticas com **Alembic**.
@@ -34,6 +35,7 @@ app/
 ├── schemas/            # Schemas Pydantic para validação e serialização
 ├── services/           # Regras de negócio de contas, aplicações e tokens OAuth
 ├── routers/            # Endpoints FastAPI (/auth, /authorize, /token, /me, /.well-known/jwks.json)
+├── templates/          # Templates HTML SSR (login.html com visual do Observatório)
 └── main.py             # Aplicação FastAPI e middlewares
 ```
 
