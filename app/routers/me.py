@@ -14,6 +14,7 @@ router = APIRouter(prefix='/me', tags=['me'])
 
 
 @router.get('', response_model=UserPublic)
+@router.get('/', response_model=UserPublic)
 async def get_profile(
     current_user: CurrentUser,
     session: DbSession,
