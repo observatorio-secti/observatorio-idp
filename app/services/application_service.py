@@ -82,6 +82,8 @@ class ApplicationService:
                 'redirect_uris': [
                     'http://localhost:3000/auth/callback',
                     'http://localhost:8000/auth/callback',
+                    'http://localhost:8080/auth/callback',
+                    'http://localhost:8080/simcc/auth/callback',
                     'http://localhost:5173/auth/callback',
                     'http://localhost:5173/simcc/auth/callback',
                     'https://observatoriocti.secti.ba.gov.br/simcc/auth/callback',
@@ -92,9 +94,12 @@ class ApplicationService:
                 'client_id': 'observatorio',
                 'name': 'Observatório Portal',
                 'redirect_uris': [
+                    'http://localhost:3000/auth/callback',
                     'http://localhost:3001/auth/callback',
                     'http://localhost:5173/auth/callback',
                     'http://localhost:5173/',
+                    'http://localhost:5174/auth/callback',
+                    'http://localhost:5174/',
                     'https://observatoriocti.secti.ba.gov.br/auth/callback',
                     'https://observatoriocti.secti.ba.gov.br/',
                 ],
