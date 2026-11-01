@@ -29,53 +29,67 @@
     }
   </script>
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
     body {
       font-family: 'Lexend', sans-serif;
       background-color: #F8F9FB;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between text-neutral-800 antialiased">
-  <!-- Faixa decorativa institucional no topo -->
-  <div class="h-1 w-full bg-gradient-to-r from-blue-700 via-[#559FB8] to-red-600"></div>
-
-  <!-- Header Institucional -->
-  <header class="w-full bg-white/95 backdrop-blur-md border-b border-neutral-200/80 py-3.5 px-6 sticky top-0 z-10">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <div class="flex items-center">
-        <a href="https://www.ba.gov.br/secti/" target="_blank" rel="noopener noreferrer" class="hover:opacity-90 transition-opacity flex items-center" title="Governo da Bahia — Secretaria de Ciência, Tecnologia e Inovação">
-          <img src="/static/images/GOVERNO-BAHIA-SECTI.png" alt="Governo da Bahia — Secretaria de Ciência, Tecnologia e Inovação" class="h-10 sm:h-12 w-auto object-contain">
+<body class="h-screen max-h-screen flex flex-col justify-between text-neutral-800 antialiased overflow-hidden bg-[#F8F9FB]">
+  <!-- Header Institucional (mesmo tamanho e estilo do Observatório: h-16 com faixa gradiente) -->
+  <header class="bg-white border-b border-gray-200 w-full sticky top-0 z-40 h-16 shrink-0 relative">
+    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-700 via-blue-500 to-red-600"></div>
+    <div class="flex justify-between items-center w-full px-6 md:px-12 h-full max-w-[1400px] mx-auto mt-[1px]">
+      <div class="flex items-center h-full">
+        <a
+          href="https://www.ba.gov.br/secti/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:opacity-85 transition-opacity flex items-center h-full cursor-pointer"
+          title="Secretaria de Ciência, Tecnologia e Inovação — Governo da Bahia"
+        >
+          <img
+            src="/static/images/GOVERNO-BAHIA-SECTI.png"
+            alt="Governo da Bahia — Secretaria de Ciência, Tecnologia e Inovação"
+            class="h-10 md:h-12 w-auto object-contain"
+          >
         </a>
       </div>
     </div>
   </header>
 
-  <!-- Conteúdo Principal -->
-  <main class="flex-1 flex items-center justify-center p-4 sm:p-6 my-6">
-    <div class="w-full max-w-md bg-white rounded-2xl border border-neutral-200 shadow-xl shadow-neutral-200/50 overflow-hidden">
+  <!-- Conteúdo Principal Centralizado (ocupa o restante da tela sem scroll) -->
+  <main class="flex-1 flex items-center justify-center px-4 py-2 min-h-0 overflow-y-auto sm:overflow-hidden">
+    <div class="w-full max-w-[375px] bg-white rounded-2xl border border-neutral-200 shadow-xl shadow-neutral-200/40 overflow-hidden">
       <!-- Barra decorativa com gradiente institucional -->
-      <div class="h-1.5 w-full bg-gradient-to-r from-blue-700 via-[#559FB8] to-red-600"></div>
+      <div class="h-1 w-full bg-gradient-to-r from-blue-700 via-[#559FB8] to-red-600"></div>
 
-      <div class="p-6 sm:p-8">
-        <!-- Logo e Título -->
-        <div class="text-center mb-6">
-          <div class="flex justify-center mb-3">
-            <div class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2 shadow-xs">
+      <div class="p-5 sm:p-5">
+        <!-- Logo e Título Compacto -->
+        <div class="text-center mb-3">
+          <div class="flex justify-center mb-2">
+            <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1.5 shadow-2xs">
               <img src="/static/images/LOGO.png" alt="Observatório de CT&amp;I" class="w-full h-full object-contain">
             </div>
           </div>
-          <h1 class="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
+          <h1 class="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight leading-snug">
             Acesse o <span class="bg-gradient-to-r from-blue-700 to-red-600 bg-clip-text text-transparent">Observatório</span>
           </h1>
-          <p class="text-xs text-neutral-500 mt-1.5 leading-relaxed">
+          <p class="text-[11px] text-neutral-500 mt-0.5 leading-snug">
             Sua conta única para o Portal, SimCC, Vip e ecossistema CT&amp;I
           </p>
         </div>
 
         <!-- Banner de Erro -->
         {% if error %}
-        <div class="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2.5 text-left text-xs text-red-700 animate-in fade-in">
-          <svg class="w-4 h-4 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="mb-3 p-2 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2 text-left text-[11px] text-red-700 animate-in fade-in">
+          <svg class="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
           </svg>
           <span>{{ error }}</span>
@@ -83,10 +97,10 @@
         {% endif %}
 
         <!-- Botões de Login Social -->
-        <div class="space-y-2.5 mb-6">
+        <div class="space-y-2 mb-3">
           <a href="{{ google_login_url }}"
-             class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg border border-neutral-300 hover:border-neutral-400 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-all shadow-xs hover:shadow-sm">
-            <svg class="w-4 h-4" viewBox="0 0 24 24">
+             class="w-full flex items-center justify-center gap-2.5 py-2 px-3 rounded-lg border border-neutral-300 hover:border-neutral-400 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-all shadow-2xs hover:shadow-xs">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
@@ -96,35 +110,35 @@
           </a>
 
           <a href="{{ orcid_login_url }}"
-             class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg border border-neutral-300 hover:border-neutral-400 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-all shadow-xs hover:shadow-sm">
-            <svg class="w-4 h-4 text-[#A6CE39]" viewBox="0 0 256 256" fill="currentColor">
+             class="w-full flex items-center justify-center gap-2.5 py-2 px-3 rounded-lg border border-neutral-300 hover:border-neutral-400 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-all shadow-2xs hover:shadow-xs">
+            <svg class="w-3.5 h-3.5 text-[#A6CE39]" viewBox="0 0 256 256" fill="currentColor">
               <path d="M128 0C57.3 0 0 57.3 0 128s57.3 128 128 128 128-57.3 128-128S198.7 0 128 0zm-42 195.4H64.7V83.6H86v111.8zm-10.7-126c-7.3 0-13.3-6-13.3-13.3s6-13.3 13.3-13.3 13.3 6 13.3 13.3-6 13.3-13.3 13.3zm120.3 71.9c0 30.6-24.8 54.1-57.7 54.1h-44.5V83.6h46.2c31.6 0 56 23.3 56 57.7zm-21.3 0c0-21.8-15.5-38.3-37.1-38.3h-23.7v76.5h23.7c21.6 0 37.1-16.5 37.1-38.2z"/>
             </svg>
             <span>Continuar com ORCID</span>
           </a>
         </div>
 
-        <!-- Separador -->
-        <div class="relative flex py-2 items-center mb-5">
+        <!-- Separador Compacto -->
+        <div class="relative flex py-1 items-center mb-2.5">
           <div class="flex-grow border-t border-neutral-200"></div>
-          <span class="flex-shrink mx-3 text-[11px] font-medium text-neutral-400 uppercase tracking-wider">ou com e-mail</span>
+          <span class="flex-shrink mx-2.5 text-[10px] font-medium text-neutral-400 uppercase tracking-wider">ou com e-mail</span>
           <div class="flex-grow border-t border-neutral-200"></div>
         </div>
 
         <!-- Alternador de Abas (Entrar / Cadastrar) -->
-        <div class="flex p-1 rounded-lg bg-neutral-100 mb-5">
+        <div class="flex p-0.5 rounded-lg bg-neutral-100 mb-2.5">
           <button type="button" id="tab-login" onclick="switchTab('login')"
-                  class="flex-1 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-neutral-900 shadow-sm">
+                  class="flex-1 py-1 text-xs font-semibold rounded-md transition-all bg-white text-neutral-900 shadow-2xs">
             Entrar
           </button>
           <button type="button" id="tab-register" onclick="switchTab('register')"
-                  class="flex-1 py-1.5 text-xs font-semibold rounded-md transition-all text-neutral-500 hover:text-neutral-900">
+                  class="flex-1 py-1 text-xs font-semibold rounded-md transition-all text-neutral-500 hover:text-neutral-900">
             Criar conta
           </button>
         </div>
 
         <!-- Formulário Submissão -->
-        <form id="auth-form" method="POST" action="/authorize" class="space-y-4">
+        <form id="auth-form" method="POST" action="/authorize" class="space-y-2.5">
           <!-- Parâmetros PKCE Ocultos -->
           <input type="hidden" name="client_id" value="{{ client_id }}">
           <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
@@ -135,31 +149,31 @@
           <input type="hidden" name="action" id="form-action" value="login">
 
           <!-- Campo Nome (Apenas Cadastro) -->
-          <div id="field-name" class="hidden space-y-1">
-            <label class="block text-xs font-medium text-neutral-700">Nome completo</label>
+          <div id="field-name" class="hidden space-y-0.5">
+            <label class="block text-[11px] font-medium text-neutral-700">Nome completo</label>
             <input type="text" name="name" id="input-name" placeholder="Ex: Maria Santos"
-                   class="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#024A60]/20 focus:border-[#024A60] transition-all">
+                   class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#024A60]/20 focus:border-[#024A60] transition-all">
           </div>
 
           <!-- Campo E-mail -->
-          <div class="space-y-1">
-            <label class="block text-xs font-medium text-neutral-700">E-mail</label>
+          <div class="space-y-0.5">
+            <label class="block text-[11px] font-medium text-neutral-700">E-mail</label>
             <input type="email" name="email" required placeholder="seu.email@instituicao.ba.gov.br"
-                   class="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#024A60]/20 focus:border-[#024A60] transition-all">
+                   class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#024A60]/20 focus:border-[#024A60] transition-all">
           </div>
 
           <!-- Campo Senha -->
-          <div class="space-y-1">
+          <div class="space-y-0.5">
             <div class="flex items-center justify-between">
-              <label class="block text-xs font-medium text-neutral-700">Senha</label>
+              <label class="block text-[11px] font-medium text-neutral-700">Senha</label>
             </div>
             <input type="password" name="password" required minlength="6" placeholder="••••••••"
-                   class="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#024A60]/20 focus:border-[#024A60] transition-all">
+                   class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#024A60]/20 focus:border-[#024A60] transition-all">
           </div>
 
           <!-- Botão Submeter -->
           <button type="submit" id="btn-submit"
-                  class="w-full py-2.5 px-4 mt-2 rounded-lg bg-gradient-to-r from-[#024A60] to-[#559FB8] hover:from-[#013545] hover:to-[#45859c] text-white text-xs font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                  class="w-full py-2 px-3 mt-1 rounded-lg bg-gradient-to-r from-[#024A60] to-[#559FB8] hover:from-[#013545] hover:to-[#45859c] text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer">
             <span>Acessar plataforma</span>
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
@@ -169,7 +183,7 @@
       </div>
 
       <!-- Rodapé do Card -->
-      <div class="bg-neutral-50 px-6 py-3.5 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500">
+      <div class="bg-neutral-50 px-5 py-2 border-t border-neutral-100 flex items-center justify-between text-[10px] text-neutral-500">
         <span>Aplicação: <strong class="text-neutral-700 font-semibold">{{ client_id }}</strong></span>
         <span>SECTI Bahia</span>
       </div>
@@ -177,7 +191,7 @@
   </main>
 
   <!-- Rodapé Global -->
-  <footer class="w-full py-4 text-center text-xs text-neutral-400 border-t border-neutral-200/60 bg-white/40">
+  <footer class="w-full py-2.5 text-center text-[11px] text-neutral-400 border-t border-neutral-200/60 bg-white/60 shrink-0">
     Secretaria de Ciência, Tecnologia e Inovação — Governo do Estado da Bahia
   </footer>
 
@@ -191,15 +205,15 @@
       const btnSubmit = document.getElementById('btn-submit');
 
       if (mode === 'register') {
-        tabRegister.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-neutral-900 shadow-sm";
-        tabLogin.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition-all text-neutral-500 hover:text-neutral-900";
+        tabRegister.className = "flex-1 py-1 text-xs font-semibold rounded-md transition-all bg-white text-neutral-900 shadow-2xs";
+        tabLogin.className = "flex-1 py-1 text-xs font-semibold rounded-md transition-all text-neutral-500 hover:text-neutral-900";
         fieldName.classList.remove('hidden');
         inputName.required = true;
         formAction.value = 'register';
         btnSubmit.querySelector('span').innerText = 'Criar minha conta';
       } else {
-        tabLogin.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-neutral-900 shadow-sm";
-        tabRegister.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition-all text-neutral-500 hover:text-neutral-900";
+        tabLogin.className = "flex-1 py-1 text-xs font-semibold rounded-md transition-all bg-white text-neutral-900 shadow-2xs";
+        tabRegister.className = "flex-1 py-1 text-xs font-semibold rounded-md transition-all text-neutral-500 hover:text-neutral-900";
         fieldName.classList.add('hidden');
         inputName.required = false;
         formAction.value = 'login';
