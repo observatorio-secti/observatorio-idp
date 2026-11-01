@@ -215,6 +215,17 @@ def test_login_page_renders_html(client: TestClient, application):
     assert 'Observatório' in resp.text
     assert 'Continuar com Google' in resp.text
     assert 'Continuar com ORCID' in resp.text
+    assert 'GOVERNO-BAHIA-SECTI.png' in resp.text
+    assert 'Autenticação Central (IdP)' not in resp.text
+    assert 'Vitrine' not in resp.text
+    assert 'Vip' in resp.text
+
+
+def test_static_assets_served(client: TestClient):
+    """Verifica se os assets estáticos institucionais são servidos corretamente."""
+    resp = client.get('/static/images/GOVERNO-BAHIA-SECTI.png')
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.headers['content-type'].startswith('image/')
 
 
 def test_authorize_renders_html_when_unauthenticated(

@@ -35,6 +35,7 @@ app/
 ├── schemas/            # Schemas Pydantic para validação e serialização
 ├── services/           # Regras de negócio de contas, aplicações e tokens OAuth
 ├── routers/            # Endpoints FastAPI (/auth, /authorize, /token, /me, /.well-known/jwks.json)
+├── static/             # Assets estáticos (logos institucionais e favicon)
 ├── templates/          # Templates HTML SSR (login.html com visual do Observatório)
 └── main.py             # Aplicação FastAPI e middlewares
 ```

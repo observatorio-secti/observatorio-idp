@@ -1,9 +1,11 @@
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.database import async_session_maker
@@ -21,7 +23,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             logger.info('Aplicações padrão semeadas com sucesso.')
         except Exception as e:
             logger.warning(
-                'Não foi possível semear as aplicações padrão no startup: %s', e
+                'Não foi possível semear as aplicações padrão no startup: %s',
+                e,
             )
     yield
 
@@ -54,6 +57,10 @@ app.include_router(auth.router)
 app.include_router(authorize.router)
 app.include_router(oauth_providers.router)
 app.include_router(me.router)
+
+static_dir = Path(__file__).resolve().parent / 'static'
+if static_dir.exists():
+    app.mount('/static', StaticFiles(directory=str(static_dir)), name='static')
 
 
 @app.get('/health', tags=['health'])
