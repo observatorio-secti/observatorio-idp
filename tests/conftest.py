@@ -63,6 +63,17 @@ def client(session: AsyncSession):
 
 
 @pytest.fixture
+def proxied_client(client: TestClient):
+    """TestClient do IdP publicado atrás de proxy reverso em `/idp`.
+
+    Reproduz o que o uvicorn recebe em produção com `--root-path /idp`:
+    `scope['root_path'] == '/idp'` e o caminho completo, ex.: `/idp/authorize`.
+    Depende de `client` para reaproveitar o override da sessão de banco.
+    """
+    return TestClient(app, root_path='/idp')
+
+
+@pytest.fixture
 def user_generator(session: AsyncSession):
     """Fixture geradora assíncrona para persistir usuários nos testes."""
 

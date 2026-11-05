@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Entrar — Observatório de CT&amp;I da Bahia</title>
-  <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="{{ root_path }}/static/images/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -55,7 +55,7 @@
           title="Secretaria de Ciência, Tecnologia e Inovação — Governo da Bahia"
         >
           <img
-            src="/static/images/GOVERNO-BAHIA-SECTI.png"
+            src="{{ root_path }}/static/images/GOVERNO-BAHIA-SECTI.png"
             alt="Governo da Bahia — Secretaria de Ciência, Tecnologia e Inovação"
             class="h-10 md:h-12 w-auto object-contain"
           >
@@ -75,7 +75,7 @@
         <div class="text-center mb-3">
           <div class="flex justify-center mb-2">
             <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1.5 shadow-2xs">
-              <img src="/static/images/LOGO.png" alt="Observatório de CT&amp;I" class="w-full h-full object-contain">
+              <img src="{{ root_path }}/static/images/LOGO.png" alt="Observatório de CT&amp;I" class="w-full h-full object-contain">
             </div>
           </div>
           <h1 class="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight leading-snug">
@@ -138,7 +138,7 @@
         </div>
 
         <!-- Formulário Submissão -->
-        <form id="auth-form" method="POST" action="/authorize" class="space-y-2.5">
+        <form id="auth-form" method="POST" action="{{ root_path }}/authorize" class="space-y-2.5">
           <!-- Parâmetros PKCE Ocultos -->
           <input type="hidden" name="client_id" value="{{ client_id }}">
           <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">

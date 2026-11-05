@@ -98,3 +98,18 @@ Para subir o serviço juntamente com um banco de dados PostgreSQL 16:
 ```bash
 docker compose up --build
 ```
+
+### Publicação atrás de proxy reverso em subcaminho
+
+Em produção o IdP fica publicado em `https://observatoriocti.secti.ba.gov.br/idp/`. O nginx remove o prefixo `/idp/` antes de repassar ao container (`proxy_pass http://127.0.0.1:8937/;`). O container precisa conhecer esse prefixo para montar os links da tela de login (formulário, logos e botões Google/ORCID); sem ele o navegador envia o login para `/authorize`, fora do IdP, e o nginx responde `405 Not Allowed`.
+
+Variáveis do container nesse cenário:
+
+| Variável | Valor em produção | Função |
+| :--- | :--- | :--- |
+| `ROOT_PATH` | `/idp` (sem barra no final) | Lida pelo `entrypoint.sh` e repassada ao uvicorn como `--root-path`. |
+| `IDP_ISSUER` | `https://observatoriocti.secti.ba.gov.br/idp` | Claim `iss` dos tokens. |
+| `GOOGLE_REDIRECT_URI` | `https://observatoriocti.secti.ba.gov.br/idp/auth/google/callback` | Deve ser igual à URI cadastrada no Google Cloud Console. |
+| `ORCID_REDIRECT_URI` | `https://observatoriocti.secti.ba.gov.br/idp/auth/orcid/callback` | Deve ser igual à URI cadastrada no ORCID. |
+
+Os testes em `tests/test_proxy_prefix.py` simulam esse cenário com `TestClient(app, root_path='/idp')`.

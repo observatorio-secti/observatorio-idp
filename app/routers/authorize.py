@@ -56,6 +56,22 @@ def _encode_pkce_state(
     return f'pkce_{raw_b64}'
 
 
+def _login_links(request: Request, encoded_pkce: str) -> dict[str, str]:
+    """URLs da tela de login relativas ao prefixo público do IdP.
+
+    Atrás de um proxy que publica o IdP em um subcaminho (ex.: `/idp`), o
+    uvicorn recebe `--root-path` ou o cabeçalho `X-Forwarded-Prefix`. Links absolutos
+    sem esse prefixo levariam o navegador para fora do IdP.
+    """
+    forwarded = request.headers.get('x-forwarded-prefix', '').strip()
+    root_path = (forwarded or request.scope.get('root_path', '')).rstrip('/')
+    return {
+        'root_path': root_path,
+        'google_login_url': f'{root_path}/auth/google/login?state={encoded_pkce}',
+        'orcid_login_url': f'{root_path}/auth/orcid/login?state={encoded_pkce}',
+    }
+
+
 @router.get('/login', response_class=HTMLResponse)
 async def login_page(
     request: Request,
@@ -93,8 +109,7 @@ async def login_page(
             'code_challenge_method': code_challenge_method,
             'state': state or '',
             'error': None,
-            'google_login_url': f'/auth/google/login?state={encoded_pkce}',
-            'orcid_login_url': f'/auth/orcid/login?state={encoded_pkce}',
+            **_login_links(request, encoded_pkce),
         },
     )
 
@@ -184,8 +199,7 @@ async def authorize(
                 'code_challenge_method': code_challenge_method,
                 'state': state or '',
                 'error': None,
-                'google_login_url': f'/auth/google/login?state={encoded_pkce}',
-                'orcid_login_url': f'/auth/orcid/login?state={encoded_pkce}',
+                **_login_links(request, encoded_pkce),
             },
         )
 
@@ -277,8 +291,7 @@ async def process_authorization_login(
                 'code_challenge_method': code_challenge_method,
                 'state': state or '',
                 'error': error_msg,
-                'google_login_url': f'/auth/google/login?state={encoded_pkce}',
-                'orcid_login_url': f'/auth/orcid/login?state={encoded_pkce}',
+                **_login_links(request, encoded_pkce),
             },
             status_code=HTTPStatus.BAD_REQUEST,
         )
