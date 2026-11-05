@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import async_session_maker
 from app.routers import auth, authorize, jwks, me, oauth_providers
+from app.services.account_service import AccountService
 from app.services.application_service import ApplicationService
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as e:
             logger.warning(
                 'Não foi possível semear as aplicações padrão no startup: %s',
+                e,
+            )
+        try:
+            await AccountService.seed_admin_user(session)
+            logger.info(
+                'Usuário administrador padrão verificado/semeado com sucesso.'
+            )
+        except Exception as e:
+            logger.warning(
+                'Não foi possível semear o usuário admin padrão no startup: %s',
                 e,
             )
     yield

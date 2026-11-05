@@ -274,3 +274,26 @@ class AccountService:
         await session.commit()
         await session.refresh(new_user)
         return new_user
+
+    @classmethod
+    async def seed_admin_user(cls, session: AsyncSession) -> User | None:
+        """Cadastra o usuário administrador padrão caso ainda não exista no banco."""
+        clean_email = settings.ADMIN_EMAIL.lower().strip()
+        if not clean_email or not settings.ADMIN_PASSWORD:
+            return None
+
+        existing = await cls.get_by_email(session, clean_email)
+        if existing:
+            return existing
+
+        user = User(
+            email=clean_email,
+            name=settings.ADMIN_NAME.strip(),
+            password_hash=get_password_hash(settings.ADMIN_PASSWORD),
+            is_active=True,
+            role='ADMIN',
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user

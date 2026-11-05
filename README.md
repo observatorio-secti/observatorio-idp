@@ -59,6 +59,17 @@ Copie o arquivo de exemplo e ajuste conforme seu ambiente:
 cp .env.example .env
 ```
 
+| Variável | Padrão | Descrição |
+| :--- | :--- | :--- |
+| `ADMIN_EMAIL` | `admin@observatorio.ba.gov.br` | E-mail do usuário administrador criado automaticamente no primeiro startup. |
+| `ADMIN_NAME` | `Administrador Observatório` | Nome de exibição do administrador inicial. |
+| `ADMIN_PASSWORD` | `admin_secret_password` | Senha inicial (hasheada com Argon2id). |
+| `DATABASE_URL` | SQLite / Postgres | String de conexão assíncrona com o banco. |
+| `IDP_ISSUER` | `http://localhost:8000` | Issuer OAuth2/OIDC (`iss` nos JWTs). |
+
+> 💡 **Inicialização e Seed Automático**: Ao iniciar a aplicação (seja via `poetry run task run` ou `docker compose up`), o evento de `lifespan` executa automaticamente o seed das aplicações OAuth padrão (`simcc` e `observatorio`) e do usuário administrador padrão caso ainda não existam no banco. Se já existirem, a inicialização prossegue sem alterações.
+
+
 ### Migrações do Banco de Dados
 ```bash
 poetry run alembic upgrade head

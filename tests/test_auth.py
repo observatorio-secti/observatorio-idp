@@ -1,8 +1,13 @@
+import asyncio
 from http import HTTPStatus
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
-from app.core.keys import key_manager
+from app.core.config import settings
+from app.core.keys import KeyManager, key_manager
+from app.services.account_service import AccountService
 
 
 def test_jornada_cadastro_e_login_local_com_sucesso(client: TestClient):
@@ -102,11 +107,6 @@ def test_logout_retorna_no_content(client: TestClient):
 
 def test_key_manager_tolera_pem_com_escapes_e_aspas(monkeypatch):
     """Regra: KeyManager deve carregar PEM mesmo com escapes \\n literais e aspas do .env."""
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa
-    from app.core.config import settings
-    from app.core.keys import KeyManager
-
     # Gera chave e simula formato comum em .env (com \\n literal e aspas)
     temp_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     real_pem = temp_key.private_bytes(
@@ -123,3 +123,35 @@ def test_key_manager_tolera_pem_com_escapes_e_aspas(monkeypatch):
     jwks = km.get_jwks()
     assert 'keys' in jwks
     assert len(jwks['keys']) == 1
+
+
+async def test_seed_admin_user_cria_usuario_se_nao_existir(session):
+    """Regra: seed_admin_user deve cadastrar o administrador padrão com papel ADMIN."""
+    user = await AccountService.seed_admin_user(session)
+    assert user is not None
+    assert user.email == settings.ADMIN_EMAIL.lower().strip()
+    assert user.name == settings.ADMIN_NAME
+    assert user.role == 'ADMIN'
+    assert user.is_active is True
+
+    # Verifica idempotência: se chamado novamente, não duplica e retorna o existente
+    user_duplicate = await AccountService.seed_admin_user(session)
+    assert user_duplicate.id == user.id
+
+
+def test_login_com_usuario_admin_semeado(client: TestClient, session):
+    """Regra: Administrador semeado deve conseguir realizar login e emitir token com role ADMIN."""
+    asyncio.run(AccountService.seed_admin_user(session))
+
+    login_payload = {
+        'email': settings.ADMIN_EMAIL,
+        'password': settings.ADMIN_PASSWORD,
+    }
+    response = client.post('/auth/login', json=login_payload)
+    assert response.status_code == HTTPStatus.OK
+    token_data = response.json()
+    assert 'access_token' in token_data
+
+    payload = key_manager.decode_jwt(token_data['access_token'])
+    assert payload['email'] == settings.ADMIN_EMAIL.lower().strip()
+    assert payload['role'] == 'ADMIN'
