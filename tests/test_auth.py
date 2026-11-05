@@ -98,3 +98,28 @@ def test_logout_retorna_no_content(client: TestClient):
     """Regra: Endpoint de logout encerra a sessão e retorna 204."""
     response = client.post('/auth/logout')
     assert response.status_code == HTTPStatus.NO_CONTENT
+
+
+def test_key_manager_tolera_pem_com_escapes_e_aspas(monkeypatch):
+    """Regra: KeyManager deve carregar PEM mesmo com escapes \\n literais e aspas do .env."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from app.core.config import settings
+    from app.core.keys import KeyManager
+
+    # Gera chave e simula formato comum em .env (com \\n literal e aspas)
+    temp_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    real_pem = temp_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode('utf-8')
+
+    escaped_pem = '"' + real_pem.replace('\n', '\\n') + '"'
+    monkeypatch.setattr(settings, 'IDP_PRIVATE_KEY_PEM', escaped_pem)
+
+    km = KeyManager()
+    assert km._private_key is not None
+    jwks = km.get_jwks()
+    assert 'keys' in jwks
+    assert len(jwks['keys']) == 1

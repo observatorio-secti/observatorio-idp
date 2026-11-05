@@ -25,8 +25,16 @@ class KeyManager:
         self.kid = settings.IDP_KEY_ID
 
         if settings.IDP_PRIVATE_KEY_PEM.strip():
+            raw_pem = (
+                settings.IDP_PRIVATE_KEY_PEM.strip()
+                .strip("\"'")
+                .replace('\\n', '\n')
+            )
+            cleaned_pem = '\n'.join(
+                line.strip() for line in raw_pem.splitlines() if line.strip()
+            )
             self._private_key = serialization.load_pem_private_key(
-                settings.IDP_PRIVATE_KEY_PEM.encode('utf-8'),
+                cleaned_pem.encode('utf-8'),
                 password=None,
             )
         else:

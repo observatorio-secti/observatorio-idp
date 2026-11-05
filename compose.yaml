@@ -2,6 +2,7 @@ services:
   idp:
     build: .
     container_name: observatorio-idp
+    entrypoint: ./entrypoint.sh
     ports:
       - "8000:8000"
     environment:
