@@ -5,14 +5,7 @@ services:
     entrypoint: ./entrypoint.sh
     ports:
       - "8000:8000"
-    environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/observatorio_idp
-      - IDP_ISSUER=http://localhost:8000
-      - FRONTEND_AUTH_CALLBACK_URL=http://localhost:3000/auth/callback
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@observatorio.ba.gov.br}
-      - ADMIN_NAME=${ADMIN_NAME:-Administrador Observatório}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin_secret_password}
+    env_file: .env
     depends_on:
       db:
         condition: service_healthy
