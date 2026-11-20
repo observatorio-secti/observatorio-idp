@@ -1,12 +1,14 @@
 from http import HTTPStatus
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 
+from app.core.config import settings
 from app.core.dependencies import DbSession
 from app.core.keys import create_access_token
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserPublic
 from app.services.account_service import AccountService
+from app.services.session_service import SessionService, clear_session_cookie
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 
@@ -62,6 +64,10 @@ async def login(
     '/logout',
     status_code=HTTPStatus.NO_CONTENT,
 )
-async def logout() -> Response:
-    """Encerra a sessão do usuário."""
-    return Response(status_code=HTTPStatus.NO_CONTENT)
+async def logout(request: Request, session: DbSession) -> Response:
+    """Encerra a sessão do usuário no IdP."""
+    raw_cookie = request.cookies.get(settings.SESSION_COOKIE_NAME)
+    await SessionService.revoke_session(session=session, raw_token=raw_cookie)
+    response = Response(status_code=HTTPStatus.NO_CONTENT)
+    clear_session_cookie(response, request)
+    return response

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -27,6 +29,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     AUTHORIZATION_CODE_EXPIRE_MINUTES: int = 5
+    SESSION_COOKIE_NAME: str = 'idp_session'
+    SESSION_EXPIRE_DAYS: int = 30
+    SESSION_COOKIE_SAMESITE: Literal['lax', 'strict', 'none'] = 'lax'
 
     # Redirecionamento Padrão de Frontend
     FRONTEND_AUTH_CALLBACK_URL: str = 'http://localhost:3000/auth/callback'

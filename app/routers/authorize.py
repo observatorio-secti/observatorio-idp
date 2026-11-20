@@ -21,6 +21,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jwt import ExpiredSignatureError, InvalidTokenError
 
+from app.core.config import settings
 from app.core.dependencies import DbSession
 from app.core.keys import key_manager
 from app.models.user import User
@@ -28,6 +29,11 @@ from app.schemas.auth import LoginRequest, RegisterRequest
 from app.schemas.oauth import OAuthTokenResponse
 from app.services.account_service import AccountService
 from app.services.application_service import ApplicationService
+from app.services.session_service import (
+    SessionService,
+    clear_session_cookie,
+    set_session_cookie,
+)
 from app.services.token_service import TokenService
 
 router = APIRouter(tags=['oauth2'])
@@ -56,6 +62,63 @@ def _encode_pkce_state(
     return f'pkce_{raw_b64}'
 
 
+def _get_root_path(request: Request) -> str:
+    """Resolve o prefixo público do IdP atrás de proxy reverso."""
+    forwarded = request.headers.get('x-forwarded-prefix', '').strip()
+    return (forwarded or request.scope.get('root_path', '')).rstrip('/')
+
+
+def _build_redirect_url(base_uri: str, params: dict[str, str]) -> str:
+    """Anexa query params a uma URI preservando parâmetros existentes."""
+    if not params:
+        return base_uri
+    separator = '&' if '?' in base_uri else '?'
+    return f'{base_uri}{separator}{urlencode(params)}'
+
+
+def _parse_prompt(prompt: str | None) -> set[str]:
+    """Valida e extrai os valores do parâmetro OIDC `prompt`."""
+    if not prompt or not prompt.strip():
+        return set()
+    tokens = prompt.split()
+    supported = {'none', 'login'}
+    if any(token not in supported for token in tokens):
+        raise ValueError('Valor de prompt não suportado.')
+    if 'none' in tokens and len(tokens) > 1:
+        raise ValueError("prompt='none' não pode ser combinado com outros.")
+    return set(tokens)
+
+
+async def _resolve_authorized_user(
+    request: Request,
+    session: DbSession,
+    user_id: UUID | None,
+    authorization: str | None,
+    ignore_cookie: bool = False,
+) -> User | None:
+    """Identifica o usuário autenticado via parâmetro de teste, Bearer JWT ou cookie."""
+    if user_id:
+        return await session.get(User, user_id)
+
+    if authorization and authorization.startswith('Bearer '):
+        token_str = authorization.split(' ', 1)[1]
+        try:
+            payload = key_manager.decode_jwt(token_str)
+            sub = payload.get('sub')
+            if sub:
+                return await session.get(User, UUID(sub))
+        except (ExpiredSignatureError, InvalidTokenError, ValueError):
+            return None
+
+    if not ignore_cookie:
+        raw_cookie = request.cookies.get(settings.SESSION_COOKIE_NAME)
+        return await SessionService.get_active_user_from_cookie(
+            session, raw_cookie
+        )
+
+    return None
+
+
 def _login_links(request: Request, encoded_pkce: str) -> dict[str, str]:
     """URLs da tela de login relativas ao prefixo público do IdP.
 
@@ -63,8 +126,7 @@ def _login_links(request: Request, encoded_pkce: str) -> dict[str, str]:
     uvicorn recebe `--root-path` ou o cabeçalho `X-Forwarded-Prefix`. Links absolutos
     sem esse prefixo levariam o navegador para fora do IdP.
     """
-    forwarded = request.headers.get('x-forwarded-prefix', '').strip()
-    root_path = (forwarded or request.scope.get('root_path', '')).rstrip('/')
+    root_path = _get_root_path(request)
     return {
         'root_path': root_path,
         'google_login_url': f'{root_path}/auth/google/login?state={encoded_pkce}',
@@ -135,6 +197,12 @@ async def authorize(
     state: Annotated[
         str | None, Query(description='Estado de proteção contra CSRF')
     ] = None,
+    prompt: Annotated[
+        str | None,
+        Query(
+            description="Controle de interatividade OIDC ('none' ou 'login')"
+        ),
+    ] = None,
     user_id: Annotated[
         UUID | None,
         Query(description='ID do usuário para autorização direta em testes'),
@@ -142,7 +210,7 @@ async def authorize(
     authorization: Annotated[str | None, Header()] = None,
     session: DbSession = ...,
 ) -> Response:
-    """Endpoint de autorização OAuth 2.0 com suporte a PKCE e interface interativa."""
+    """Endpoint de autorização OAuth 2.0 com suporte a PKCE, SSO e prompt=none."""
     # 1. Validação estrita de client_id e redirect_uri (rejeita sem redirecionar em caso de erro)
     await ApplicationService.validate_client_and_redirect(
         session, client_id, redirect_uri
@@ -154,21 +222,45 @@ async def authorize(
             detail="unsupported_response_type: Apenas 'response_type=code' é suportado.",
         )
 
-    # 2. Identificação do usuário logado
-    current_user: User | None = None
-    if user_id:
-        current_user = await session.get(User, user_id)
-    elif authorization and authorization.startswith('Bearer '):
-        token_str = authorization.split(' ', 1)[1]
-        try:
-            payload = key_manager.decode_jwt(token_str)
-            sub = payload.get('sub')
-            if sub:
-                current_user = await session.get(User, UUID(sub))
-        except (ExpiredSignatureError, InvalidTokenError, ValueError):
-            current_user = None
+    try:
+        prompt_tokens = _parse_prompt(prompt)
+    except ValueError as exc:
+        err_params: dict[str, str] = {
+            'error': 'invalid_request',
+            'error_description': str(exc),
+        }
+        if state:
+            err_params['state'] = state
+        return RedirectResponse(
+            url=_build_redirect_url(redirect_uri, err_params),
+            status_code=HTTPStatus.FOUND,
+        )
+
+    # 2. Identificação do usuário logado (ignora cookie se prompt=login)
+    current_user = await _resolve_authorized_user(
+        request=request,
+        session=session,
+        user_id=user_id,
+        authorization=authorization,
+        ignore_cookie='login' in prompt_tokens,
+    )
 
     if not current_user or not current_user.is_active:
+        if 'none' in prompt_tokens:
+            err_params = {
+                'error': 'login_required',
+                'error_description': 'Usuário não possui sessão ativa no IdP.',
+            }
+            if state:
+                err_params['state'] = state
+            response = RedirectResponse(
+                url=_build_redirect_url(redirect_uri, err_params),
+                status_code=HTTPStatus.FOUND,
+            )
+            if settings.SESSION_COOKIE_NAME in request.cookies:
+                clear_session_cookie(response, request)
+            return response
+
         accept_header = request.headers.get('accept', '')
         # Se for requisição explicitamente de API/JSON ou teste com header de token ausente
         if (
@@ -217,11 +309,8 @@ async def authorize(
     if state:
         params['state'] = state
 
-    separator = '&' if '?' in redirect_uri else '?'
-    redirect_target = f'{redirect_uri}{separator}{urlencode(params)}'
-
     return RedirectResponse(
-        url=redirect_target,
+        url=_build_redirect_url(redirect_uri, params),
         status_code=HTTPStatus.FOUND,
     )
 
@@ -296,6 +385,7 @@ async def process_authorization_login(
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
+    raw_session = await SessionService.create_session(session, user.id)
     raw_code = await TokenService.create_authorization_code(
         session=session,
         client_id=client_id,
@@ -309,13 +399,12 @@ async def process_authorization_login(
     if state:
         params['state'] = state
 
-    separator = '&' if '?' in redirect_uri else '?'
-    redirect_target = f'{redirect_uri}{separator}{urlencode(params)}'
-
-    return RedirectResponse(
-        url=redirect_target,
+    response = RedirectResponse(
+        url=_build_redirect_url(redirect_uri, params),
         status_code=HTTPStatus.SEE_OTHER,
     )
+    set_session_cookie(response, request, raw_session)
+    return response
 
 
 @router.post('/token', response_model=OAuthTokenResponse)
@@ -376,4 +465,108 @@ async def issue_token(
     raise HTTPException(
         status_code=HTTPStatus.BAD_REQUEST,
         detail=f"unsupported_grant_type: '{grant_type}' não é suportado.",
+    )
+
+
+async def _handle_end_session(
+    request: Request,
+    session: DbSession,
+    post_logout_redirect_uri: str | None,
+    state: str | None,
+    client_id: str | None,
+    redirect_status: int,
+) -> Response:
+    """Encerra a sessão SSO no IdP, revoga refresh tokens e redireciona com segurança."""
+    if post_logout_redirect_uri:
+        await ApplicationService.validate_post_logout_redirect_uri(
+            session=session,
+            post_logout_redirect_uri=post_logout_redirect_uri,
+            client_id=client_id,
+        )
+
+    raw_cookie = request.cookies.get(settings.SESSION_COOKIE_NAME)
+    await SessionService.revoke_session(
+        session=session,
+        raw_token=raw_cookie,
+        revoke_refresh_tokens=True,
+        client_id=client_id,
+    )
+
+    if post_logout_redirect_uri:
+        params = {'state': state} if state else {}
+        response: Response = RedirectResponse(
+            url=_build_redirect_url(post_logout_redirect_uri, params),
+            status_code=redirect_status,
+        )
+    elif (
+        request.method == 'GET'
+        and 'text/html' in request.headers.get('accept', '')
+        and 'application/json' not in request.headers.get('accept', '')
+    ):
+        root_path = _get_root_path(request)
+        response = RedirectResponse(
+            url=f'{root_path}/login',
+            status_code=HTTPStatus.FOUND,
+        )
+    else:
+        response = Response(status_code=HTTPStatus.NO_CONTENT)
+
+    clear_session_cookie(response, request)
+    return response
+
+
+@router.get('/end_session')
+async def end_session_get(
+    request: Request,
+    session: DbSession,
+    post_logout_redirect_uri: Annotated[str | None, Query()] = None,
+    state: Annotated[str | None, Query()] = None,
+    client_id: Annotated[str | None, Query()] = None,
+    id_token_hint: Annotated[str | None, Query()] = None,
+) -> Response:
+    """Endpoint de logout RP-Initiated (OIDC) via GET para encerrar a sessão no IdP."""
+    _ = id_token_hint
+    return await _handle_end_session(
+        request=request,
+        session=session,
+        post_logout_redirect_uri=post_logout_redirect_uri,
+        state=state,
+        client_id=client_id,
+        redirect_status=HTTPStatus.FOUND,
+    )
+
+
+@router.post('/end_session')
+async def end_session_post(
+    request: Request,
+    session: DbSession,
+    post_logout_redirect_uri: Annotated[str | None, Form()] = None,
+    state: Annotated[str | None, Form()] = None,
+    client_id: Annotated[str | None, Form()] = None,
+    id_token_hint: Annotated[str | None, Form()] = None,
+) -> Response:
+    """Endpoint de logout RP-Initiated (OIDC) via POST (Form, Query ou JSON)."""
+    _ = id_token_hint
+    if 'application/json' in request.headers.get('content-type', ''):
+        body = await request.json()
+        post_logout_redirect_uri = body.get(
+            'post_logout_redirect_uri', post_logout_redirect_uri
+        )
+        state = body.get('state', state)
+        client_id = body.get('client_id', client_id)
+
+    post_logout_redirect_uri = (
+        post_logout_redirect_uri
+        or request.query_params.get('post_logout_redirect_uri')
+    )
+    state = state or request.query_params.get('state')
+    client_id = client_id or request.query_params.get('client_id')
+
+    return await _handle_end_session(
+        request=request,
+        session=session,
+        post_logout_redirect_uri=post_logout_redirect_uri,
+        state=state,
+        client_id=client_id,
+        redirect_status=HTTPStatus.SEE_OTHER,
     )

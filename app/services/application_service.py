@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from http import HTTPStatus
+from urllib.parse import urlparse
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -41,6 +42,47 @@ class ApplicationService:
             )
 
         return app
+
+    @classmethod
+    async def validate_post_logout_redirect_uri(
+        cls,
+        session: AsyncSession,
+        post_logout_redirect_uri: str,
+        client_id: str | None = None,
+    ) -> None:
+        """Valida se a URI de retorno pós-logout pertence a uma aplicação ativa."""
+        parsed_target = urlparse(post_logout_redirect_uri)
+        if not parsed_target.scheme or not parsed_target.netloc:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail='invalid_request: post_logout_redirect_uri inválida.',
+            )
+
+        if client_id:
+            app = await cls.get_application(session, client_id)
+            if not app or not app.is_active:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail='invalid_client: Aplicação cliente não encontrada ou inativa.',
+                )
+            apps = [app]
+        else:
+            stmt = select(Application).where(Application.is_active.is_(True))
+            apps = list(await session.scalars(stmt))
+
+        target_origin = (parsed_target.scheme, parsed_target.netloc)
+        for app in apps:
+            for registered in app.redirect_uris:
+                if post_logout_redirect_uri == registered:
+                    return
+                parsed_reg = urlparse(registered)
+                if (parsed_reg.scheme, parsed_reg.netloc) == target_origin:
+                    return
+
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail='invalid_request: post_logout_redirect_uri não autorizada.',
+        )
 
     @classmethod
     async def register_application(

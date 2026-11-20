@@ -4,7 +4,7 @@ from http import HTTPStatus
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 
 from app.core.config import settings
@@ -13,6 +13,7 @@ from app.core.keys import create_access_token
 from app.core.security import generate_secure_token
 from app.oauth.registry import get_oauth_provider
 from app.services.account_service import AccountService
+from app.services.session_service import SessionService, set_session_cookie
 from app.services.token_service import TokenService
 
 router = APIRouter(prefix='/auth', tags=['federated-auth'])
@@ -43,6 +44,7 @@ async def oauth_login(
 
 @router.get('/{provider}/callback')
 async def oauth_callback(
+    request: Request,
     provider: str,
     code: str,
     session: DbSession,
@@ -68,6 +70,7 @@ async def oauth_callback(
     user = await AccountService.authenticate_or_link_federated_user(
         session, user_info
     )
+    raw_session = await SessionService.create_session(session, user.id)
 
     # Verifica se o state carrega contexto PKCE da aplicação cliente
     pkce_data = None
@@ -101,10 +104,12 @@ async def oauth_callback(
             params['state'] = pkce_data['orig_state']
 
         separator = '&' if '?' in pkce_data['redirect_uri'] else '?'
-        return RedirectResponse(
+        response = RedirectResponse(
             url=f'{pkce_data["redirect_uri"]}{separator}{urlencode(params)}',
             status_code=HTTPStatus.TEMPORARY_REDIRECT,
         )
+        set_session_cookie(response, request, raw_session)
+        return response
 
     # Fluxo legado/direto (emite access token direto)
     access_token = create_access_token(
@@ -120,7 +125,9 @@ async def oauth_callback(
         f'{settings.FRONTEND_AUTH_CALLBACK_URL}{separator}{params}'
     )
 
-    return RedirectResponse(
+    response = RedirectResponse(
         url=redirect_target,
         status_code=HTTPStatus.TEMPORARY_REDIRECT,
     )
+    set_session_cookie(response, request, raw_session)
+    return response

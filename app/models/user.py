@@ -9,7 +9,7 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.identity import Identity
-    from app.models.token import AuthorizationCode, RefreshToken
+    from app.models.token import AuthorizationCode, IdpSession, RefreshToken
 
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -44,6 +44,11 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     authorization_codes: Mapped[list[AuthorizationCode]] = relationship(
         'AuthorizationCode',
+        back_populates='user',
+        cascade='all, delete-orphan',
+    )
+    idp_sessions: Mapped[list[IdpSession]] = relationship(
+        'IdpSession',
         back_populates='user',
         cascade='all, delete-orphan',
     )
